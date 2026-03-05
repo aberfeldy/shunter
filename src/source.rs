@@ -44,8 +44,24 @@ impl<T, F> Source<T, F> {
             data: self.data,
             func: move |x| {
                 let y = f(x);
-                y.and_then(|v| {
-                    if g(&v) { Some(v) } else { None }
+                y.and_then(|v| if g(&v) { Some(v) } else { None })
+            },
+        }
+    }
+    pub fn tap<G>(self, mut g: G) -> Source<T, impl FnMut(T) -> Option<T>>
+    where
+        F: FnMut(T) -> Option<T>,
+        G: FnMut(&T),
+    {
+        let mut f = self.func;
+
+        Source {
+            data: self.data,
+            func: move |x| {
+                let y = f(x);
+                y.map(|v| {
+                    g(&v);
+                    v
                 })
             },
         }
@@ -61,7 +77,7 @@ impl<T, F> Source<T, F> {
             let res = (self.func)(item);
             match res {
                 Some(out) => sink(out).await,
-                None => continue
+                None => continue,
             }
         }
     }
