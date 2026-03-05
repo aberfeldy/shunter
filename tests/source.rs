@@ -41,6 +41,12 @@ async fn it_runs_with_type_map() {
 #[tokio::test]
 async fn it_runs_with_filter() {
     let (out, sink) = test_sink();
-    Source::new(vec![1, 3, 2, 4]).filter(|x| x > 2).run(sink).await;
+    Source::new(vec![1, 3, 2, 4]).filter(|x| *x > 2).run(sink).await;
     assert_eq!(*out.lock().unwrap(), vec![3,4]);
+}
+#[tokio::test]
+async fn it_runs_with_filter_and_map() {
+    let (out, sink) = test_sink();
+    Source::new(vec![1, 3, 2, 4]).filter(|x| *x > 2).map(|x| x * 2).run(sink).await;
+    assert_eq!(*out.lock().unwrap(), vec![6,8]);
 }

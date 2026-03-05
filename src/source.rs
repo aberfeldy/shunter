@@ -5,10 +5,10 @@ pub struct Source<T, F> {
     func: F,
 }
 
-impl<T> Source<T, fn(T) -> T> {
+impl<T> Source<T, fn(T) -> Option<T>> {
     pub fn new(data: Vec<T>) -> Self {
-        fn identity<T>(x: T) -> T {
-            x
+        fn identity<T>(x: T) -> Option<T> {
+            Some(x)
         }
         Source {
             data,
@@ -18,9 +18,9 @@ impl<T> Source<T, fn(T) -> T> {
 }
 
 impl<T, F> Source<T, F> {
-    pub fn map<G, U>(self, mut g: G) -> Source<T, impl FnMut(T) -> U>
+    pub fn map<G, U>(self, mut g: G) -> Source<T, impl FnMut(T) -> Option<U>>
     where
-        F: FnMut(T) -> T,
+        F: FnMut(T) -> Option<T>,
         G: FnMut(T) -> U,
     {
         let mut f = self.func;
@@ -29,22 +29,40 @@ impl<T, F> Source<T, F> {
             data: self.data,
             func: move |x| {
                 let y = f(x);
-                g(y)
+                y.map(|v| g(v))
             },
         }
     }
 
-
+    pub fn filter<G, U>(self, mut g: G) -> Source<T, impl FnMut(T) -> Option<U>>
+    where
+        F: FnMut(T) -> Option<U>,
+        G: FnMut(&U) -> bool,
+    {
+        let mut f = self.func;
+        Source {
+            data: self.data,
+            func: move |x| {
+                let y = f(x);
+                y.and_then(|v| {
+                    if g(&v) { Some(v) } else { None }
+                })
+            },
+        }
+    }
 
     pub async fn run<S, Fut, O>(mut self, mut sink: S)
     where
-        F: FnMut(T) -> O,
+        F: FnMut(T) -> Option<O>,
         S: FnMut(O) -> Fut,
         Fut: Future<Output = ()>,
     {
         for item in self.data {
-            let out = (self.func)(item);
-            sink(out).await;
+            let res = (self.func)(item);
+            match res {
+                Some(out) => sink(out).await,
+                None => continue
+            }
         }
     }
 }
