@@ -18,6 +18,24 @@ impl<T> Source<T, fn(T) -> T> {
 }
 
 impl<T, F> Source<T, F> {
+    pub fn map<G, U>(self, mut g: G) -> Source<T, impl FnMut(T) -> U>
+    where
+        F: FnMut(T) -> T,
+        G: FnMut(T) -> U,
+    {
+        let mut f = self.func;
+
+        Source {
+            data: self.data,
+            func: move |x| {
+                let y = f(x);
+                g(y)
+            },
+        }
+    }
+
+
+
     pub async fn run<S, Fut, O>(mut self, mut sink: S)
     where
         F: FnMut(T) -> O,
