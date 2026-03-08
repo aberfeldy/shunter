@@ -1,10 +1,9 @@
 use shunter::source::Source;
 use std::sync::{Arc, Mutex};
 
-fn test_sink<T>() -> (
-    Arc<Mutex<Vec<T>>>,
-    impl FnMut(T) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>,
-)
+type BoxFuture<T> = std::pin::Pin<Box<dyn std::future::Future<Output=T> + Send>>;
+
+fn test_sink<T>() -> (Arc<Mutex<Vec<T>>>, impl FnMut(T) -> BoxFuture<()>)
 where
     T: Send + 'static,
 {
@@ -15,7 +14,7 @@ where
         let arc = arc.clone();
         Box::pin(async move {
             arc.lock().unwrap().push(item);
-        }) as std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>
+        }) as BoxFuture<()>
     };
 
     (out, sink)
@@ -85,4 +84,22 @@ async fn it_runs_with_tap_sf() {
         .await;
     assert_eq!(*out.lock().unwrap(), vec![1, 3, 2, 4]);
     assert_eq!(log, vec![1, 3, 2, 4]);
+}
+#[tokio::test]
+async fn it_runs_with_map_async() {
+    let out = Arc::new(Mutex::new(Vec::new()));
+    let arc = out.clone();
+    let sink = move |item| {
+        let arc = arc.clone();
+        Box::pin(async move {
+            let value = item.await;
+            arc.lock().unwrap().push(value);
+        }) as BoxFuture<()>
+    };
+
+    Source::new(vec![1, 3, 2, 4])
+        .map_async(|x| async move { x * 2 })
+        .run(sink)
+        .await;
+    assert_eq!(*out.lock().unwrap(), vec![2, 6, 4, 8]);
 }

@@ -33,6 +33,26 @@ impl<T, F> Source<T, F> {
             },
         }
     }
+    
+    pub fn map_async<G, U, Fut, V>(
+        self,
+        mut g: G,
+    ) -> Source<T, impl FnMut(T) -> Option<Fut>>
+    where
+        F: FnMut(T) -> Option<V>,
+        G: FnMut(V) -> Fut,
+        Fut: Future<Output=U>,
+    {
+        let mut f = self.func;
+
+        Source {
+            data: self.data,
+            func: move |x| {
+                let y = f(x);
+                y.map(|v| g(v))
+            },
+        }
+    }
 
     pub fn filter<G, U>(self, mut g: G) -> Source<T, impl FnMut(T) -> Option<U>>
     where
@@ -74,10 +94,8 @@ impl<T, F> Source<T, F> {
         Fut: Future<Output = ()>,
     {
         for item in self.data {
-            let res = (self.func)(item);
-            match res {
-                Some(out) => sink(out).await,
-                None => continue,
+            if let Some(out) = (self.func)(item) {
+                sink(out).await;
             }
         }
     }
