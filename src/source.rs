@@ -7,12 +7,9 @@ pub struct Source<T, F> {
 
 impl<T> Source<T, fn(T) -> Option<T>> {
     pub fn new(data: Vec<T>) -> Self {
-        fn identity<T>(x: T) -> Option<T> {
-            Some(x)
-        }
         Source {
             data,
-            func: identity::<T>,
+            func: Some,
         }
     }
 }
