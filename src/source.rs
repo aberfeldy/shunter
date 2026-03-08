@@ -26,7 +26,7 @@ impl<T, F> Source<T, F> {
             data: self.data,
             func: move |x| {
                 let y = f(x);
-                y.map(|v| g(v))
+                y.map(&mut g)
             },
         }
     }
@@ -46,7 +46,7 @@ impl<T, F> Source<T, F> {
             data: self.data,
             func: move |x| {
                 let y = f(x);
-                y.map(|v| g(v))
+                y.map(&mut g)
             },
         }
     }
@@ -76,9 +76,8 @@ impl<T, F> Source<T, F> {
             data: self.data,
             func: move |x| {
                 let y = f(x);
-                y.map(|v| {
-                    g(&v);
-                    v
+                y.inspect(|v| {
+                    g(v)
                 })
             },
         }
