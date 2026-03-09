@@ -71,6 +71,16 @@ Example:
 .map( | x| x * 2)
 ```
 
+## map_async
+
+Transform items asynchronously.
+
+Example:
+
+```rust
+.map( | x| async move { x * 2 }))
+```
+
 ## filter
 
 Conditionally remove items.
