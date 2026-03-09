@@ -1,13 +1,28 @@
+[![Crates.io](https://img.shields.io/crates/v/shunter)](https://crates.io/crates/shunter)
+[![Docs.rs](https://docs.rs/shunter/badge.svg)](https://docs.rs/shunter)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # Shunter
 
 **Shunter** is an experimental streaming pipeline library for Rust.
 
-It provides a small DSL for building composable data pipelines inspired by systems like Akka Streams, but implemented in
-an idiomatic Rust style.
+It provides a small DSL for building composable data pipelines inspired by stream processing systems, implemented in an
+idiomatic Rust style.
 
 The goal is to define clear, readable pipelines from a **Source** to a **Sink** while keeping stages easily composable.
 
 ⚠️ **Status:** Early **Alpha** — APIs will change.
+
+---
+
+## Installation
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+shunter = "0.1.0"
+```
 
 ---
 

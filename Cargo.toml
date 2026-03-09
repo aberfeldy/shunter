@@ -1,8 +1,20 @@
 [package]
 name = "shunter"
 version = "0.1.0"
+authors = ["aberfeldy <dev@aberfeldy.io>"]
 edition = "2024"
 rust-version = "1.93.1"
+description = "An experimental streaming pipeline library for Rust providing a composable DSL for building data pipelines"
+license = "MIT"
+repository = "https://github.com/aberfeldy/shunter"
+homepage = "https://github.com/aberfeldy/shunter"
+documentation = "https://docs.rs/shunter"
+readme = "README.md"
+keywords = ["stream", "pipeline", "async", "reactive", "flow"]
+categories = ["asynchronous", "data-structures"]
+exclude = [
+    ".idea/*",
+]
 
 [dev-dependencies]
 tokio = { version = "1.50.0", features = ["full"] }
