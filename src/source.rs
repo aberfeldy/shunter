@@ -254,10 +254,10 @@ impl<T, F> Source<T, F> {
         for item in self.data {
             if let Some(out) = (self.func)(item) {
                 queue.push(out);
-                if queue.len() >= self.settings.max_concurrency {
-                    if let Some(concurrent) = queue.pop() {
-                        sink(concurrent).await
-                    }
+                if queue.len() >= self.settings.max_concurrency
+                    && let Some(concurrent) = queue.pop()
+                {
+                    sink(concurrent).await
                 }
             }
         }
