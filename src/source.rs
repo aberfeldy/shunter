@@ -36,8 +36,16 @@ pub struct Source<T, F> {
 }
 
 impl<T> Source<T, fn(T) -> Option<T>> {
-    pub fn new(data: Vec<T>) -> Self {
-        Source { data, func: Some }
+    pub fn new<I>(input: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let input = input.into_iter();
+
+        Source {
+            data: input.collect(),
+            func: Some,
+        }
     }
 }
 

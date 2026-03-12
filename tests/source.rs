@@ -1,7 +1,7 @@
 use shunter::source::Source;
 use std::sync::{Arc, Mutex};
 
-type BoxFuture<T> = std::pin::Pin<Box<dyn std::future::Future<Output=T> + Send>>;
+type BoxFuture<T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send>>;
 
 fn test_sink<T>() -> (Arc<Mutex<Vec<T>>>, impl FnMut(T) -> BoxFuture<()>)
 where
@@ -102,4 +102,19 @@ async fn it_runs_with_map_async() {
         .run(sink)
         .await;
     assert_eq!(*out.lock().unwrap(), vec![2, 6, 4, 8]);
+}
+
+#[tokio::test]
+async fn it_creates_with_iterator() {
+    let (out, sink) = test_sink();
+    Source::new([1, 3, 2, 4]).run(sink).await;
+    assert_eq!(*out.lock().unwrap(), vec![1, 3, 2, 4]);
+
+    let (out, sink) = test_sink();
+    Source::new([1, 3, 2, 4].into_iter()).run(sink).await;
+    assert_eq!(*out.lock().unwrap(), vec![1, 3, 2, 4]);
+
+    let (out, sink) = test_sink();
+    Source::new(1..5).run(sink).await;
+    assert_eq!(*out.lock().unwrap(), vec![1, 2, 3, 4]);
 }
