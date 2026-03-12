@@ -1,4 +1,5 @@
 use shunter::source::Source;
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 type BoxFuture<T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send>>;
@@ -117,4 +118,33 @@ async fn it_creates_with_iterator() {
     let (out, sink) = test_sink();
     Source::new(1..5).run(sink).await;
     assert_eq!(*out.lock().unwrap(), vec![1, 2, 3, 4]);
+}
+
+#[tokio::test]
+async fn buffer_parallel_processing() {
+    let out = Arc::new(Mutex::new(Vec::new()));
+    let arc = out.clone();
+    let sink = move |item| {
+        let arc = arc.clone();
+        Box::pin(async move {
+            let value = item.await;
+            arc.lock().unwrap().push(value);
+        }) as BoxFuture<()>
+    };
+
+    Source::new(vec![1, 3, 2, 4])
+        .map_async(|x| async move { x * 2 })
+        .buffer(2)
+        .run(sink)
+        .await;
+    let i: HashSet<_> = vec![2, 4, 6, 8].into_iter().collect();
+
+    let o: HashSet<_> = out
+        .lock()
+        .unwrap()
+        .clone()
+        .into_iter()
+        .collect::<HashSet<_>>();
+
+    assert_eq!(i, o);
 }

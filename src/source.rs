@@ -30,9 +30,14 @@
 
 use std::future::Future;
 
+struct ExecutionSettings {
+    max_concurrency: usize,
+}
+
 pub struct Source<T, F> {
     data: Vec<T>,
     func: F,
+    settings: ExecutionSettings,
 }
 
 impl<T> Source<T, fn(T) -> Option<T>> {
@@ -45,6 +50,7 @@ impl<T> Source<T, fn(T) -> Option<T>> {
         Source {
             data: input.collect(),
             func: Some,
+            settings: ExecutionSettings { max_concurrency: 1 },
         }
     }
 }
@@ -63,6 +69,7 @@ impl<T, F> Source<T, F> {
                 let y = f(x);
                 y.map(&mut g)
             },
+            settings: self.settings,
         }
     }
 
@@ -80,6 +87,7 @@ impl<T, F> Source<T, F> {
                 let y = f(x);
                 y.map(&mut g)
             },
+            settings: self.settings,
         }
     }
 
@@ -95,6 +103,7 @@ impl<T, F> Source<T, F> {
                 let y = f(x);
                 y.and_then(|v| if g(&v) { Some(v) } else { None })
             },
+            settings: self.settings,
         }
     }
 
@@ -111,6 +120,17 @@ impl<T, F> Source<T, F> {
                 let y = f(x);
                 y.inspect(|v| g(v))
             },
+            settings: self.settings,
+        }
+    }
+
+    pub fn buffer(self, len: usize) -> Source<T, F> {
+        let new_settings = ExecutionSettings {
+            max_concurrency: len,
+        };
+        Source {
+            settings: new_settings,
+            ..self
         }
     }
 
@@ -120,9 +140,21 @@ impl<T, F> Source<T, F> {
         S: FnMut(O) -> Fut,
         Fut: Future<Output = ()>,
     {
+        let mut queue = vec![];
         for item in self.data {
             if let Some(out) = (self.func)(item) {
-                sink(out).await;
+                queue.push(out);
+                if queue.len() >= self.settings.max_concurrency {
+                    if let Some(concurrent) = queue.pop() {
+                        sink(concurrent).await
+                    }
+                }
+            }
+        }
+
+        while !queue.is_empty() {
+            if let Some(out) = queue.pop() {
+                sink(out).await
             }
         }
     }
