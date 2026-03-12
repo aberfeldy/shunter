@@ -83,11 +83,11 @@ impl<T> Source<T, fn(T) -> Option<T>> {
         I: IntoIterator<Item = T>,
     {
         let input = input.into_iter();
-
+        let settings = ExecutionSettings { max_concurrency: 1 };
         Source {
             data: input.collect(),
             func: Some,
-            settings: ExecutionSettings { max_concurrency: 1 },
+            settings,
         }
     }
 }
