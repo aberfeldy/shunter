@@ -9,10 +9,11 @@
 //!
 //! - [`Source::map`] — transform each element
 //! - [`Source::map_async`] — transform each element asynchronously
-//! - [`Source::buffer`] — set max_concurrency
 //! - [`Source::filter`] — drop elements that fail a predicate
 //! - [`Source::tap`] — observe elements without modifying them
+//! - [`Source::buffer`] — control concurrent processing
 //! - [`Source::run`] — execute the pipeline, passing results to a sink
+//! - [`Source::collect`] — gather all results into a Vec
 //!
 //! ## Example
 //!
@@ -225,6 +226,41 @@ impl<T, F> Source<T, F> {
             settings: new_settings,
             ..self
         }
+    }
+
+    /// Collects all elements into a Vec.
+    ///
+    /// Runs the pipeline and gathers all results into a collection.
+    /// This is a convenience method over manually using a sink.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use shunter::source::Source;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let result = Source::new(vec![1, 2, 3])
+    ///     .map(|x| x * 2)
+    ///     .collect::<i32>()
+    ///     .await;
+    ///
+    /// assert_eq!(result, vec![2, 4, 6]);
+    /// # }
+    /// ```
+    pub async fn collect<O>(self) -> Vec<O>
+    where
+        F: FnMut(T) -> Option<O>,
+    {
+        let mut out: Vec<O> = Vec::new();
+
+        self.run(|item| {
+            out.push(item);
+            async {}
+        })
+        .await;
+
+        out
     }
 
     /// Executes the pipeline and sends results to the sink.

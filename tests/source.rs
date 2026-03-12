@@ -148,3 +148,9 @@ async fn buffer_parallel_processing() {
 
     assert_eq!(i, o);
 }
+
+#[tokio::test]
+async fn it_collects_gez() {
+    let out = Source::new(1..5).collect().await;
+    assert_eq!(out, vec![1, 2, 3, 4]);
+}

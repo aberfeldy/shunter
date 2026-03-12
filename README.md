@@ -6,6 +6,14 @@
 
 **Shunter** is an experimental streaming pipeline library for Rust.
 
+## v0.1.1: What's New?
+
+- **Buffer support** — new method to control how many elements get processed concurrently. When the buffer is full, one
+  buffered element is sent to the sink before continuing.
+- **Collect** — gather all pipeline results into a Vec instead of streaming to a sink.
+
+See the [buffer](#buffer) and [collect](#collect) sections below for details.
+
 It provides a small DSL for building composable data pipelines inspired by stream processing systems, implemented in an
 idiomatic Rust style.
 
@@ -21,7 +29,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-shunter = "0.1.0"
+shunter = "0.1.1"
 ```
 
 ---
@@ -107,15 +115,35 @@ Useful for logging, metrics, debugging, etc.
 .tap( | x| println!("{}", x))
 ```
 
-## run
+## buffer
 
-Execute the pipeline and send the results to a sink.
+Control concurrent processing. When the buffer is full, one buffered element is sent to the sink before continuing.
 
 ```rust
-.run(sink)
+.buffer(5)  // process up to 5 elements at a time
 ```
 
-The sink receives each element produced by the pipeline.
+## collect
+
+Gather all pipeline results into a Vec. Useful when you want the output as a collection instead of streaming to a sink.
+
+```rust
+let results: Vec<i32> = Source::new(vec![1, 2, 3])
+    .map(|x| x * 2)
+    .collect()
+    .await;
+```
+
+## run
+
+Execute the pipeline and send results to a sink.
+
+```rust
+.run(|x| async move { println!("{}", x) })
+```
+
+The sink receives each element. If you've set a buffer size, elements get sent when the buffer fills, with any remaining
+flushed at the end.
 
 ---
 
@@ -174,7 +202,9 @@ Working:
 - map
 - filter
 - tap
+- buffer
 - run
+- collect
 
 Everything else is still under development.
 
