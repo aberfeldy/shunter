@@ -248,7 +248,8 @@ impl<T, F> Source<T, F> {
     }
 
     /// Sets the max number of elements to process concurrently.
-    ///
+    /// This is currently a draft and doesnt handle them concurrently
+    /// Will be fixed in a future update
     /// Defaults to 1 (sequential execution).
     ///
     /// # Example
