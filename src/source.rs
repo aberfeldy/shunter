@@ -149,6 +149,47 @@ impl<T, F> Source<T, F> {
         }
     }
 
+    /// Awaits all futures produced by the previous stage.
+    ///
+    /// This transforms a pipeline that produces futures into one that produces
+    /// the resolved values. Useful before `collect` when using `map_async`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use shunter::source::Source;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let result: Vec<i32> = Source::new(vec![1, 2, 3])
+    ///     .map_async(|x| async move { x * 2 })
+    ///     .await_all()
+    ///     .collect()
+    ///     .await;
+    ///
+    /// assert_eq!(result, vec![2, 4, 6]);
+    /// # }
+    /// ```
+    pub fn await_all<U, Fut>(self) -> Source<T, impl FnMut(T) -> Option<U>>
+    where
+        F: FnMut(T) -> Option<Fut>,
+        Fut: Future<Output = U>,
+    {
+        let mut f = self.func;
+
+        Source {
+            data: self.data,
+            func: move |x| {
+                let y = f(x);
+                y.map(|fut| {
+                    // Use futures executor to block on the future
+                    futures::executor::block_on(fut)
+                })
+            },
+            settings: self.settings,
+        }
+    }
+
     /// Drops elements that don't satisfy the predicate.
     ///
     /// Elements passing the filter continue downstream; others are discarded.
